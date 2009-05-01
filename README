@@ -1,0 +1,70 @@
+= CachingMailer
+
+Enables the use of fragment caching in ActionMailer views.
+
+Shares the cache configuration of ActionController::Base.
+
+
+== Resources
+
+* Source: http://github.com/mikedemers/caching-mailer/tree/master
+* Support: http://github.com/mikedemers/caching-mailer/issues
+
+
+== Installation
+
+  script/plugin install git://github.com/mikedemers/caching-mailer.git
+
+
+== Usage
+
+Configure fragment caching in "config/environment.rb" (or in the
+configuration file for a specific environment such as
+"config/environments/production.rb"):
+
+  config.action_controller.perform_caching = true
+  config.cache_store = :file_store, File.join(Rails.root, 'tmp', 'cache')
+
+
+For the mailer "app/models/hello_mailer.rb":
+
+  class HelloMailer < ActionMailer::Base
+    
+    include_fragment_caching
+    
+    def hello
+      subject     "Hello, World"
+      recipients  "you@foo.com"
+      from        "me@bar.com"
+      sent_on     Time.now
+    end
+  end
+
+And the template "app/views/hello_mailer/hello.text.plain.erb":
+
+  Hello, World!
+  
+  This is an computationally expensive list:
+  
+  <% cache("mail/expensive-list") do %>
+     <% ExpensiveOperation.results.each do |result| %>
+     * Item #<%= result.id %>: "<%= result.title %>"
+     <% end %>
+  <% end %>
+
+The computationally expensive method `ExpensiveOperation.results` will only
+be invoked once.  Subsequent emails will use the cached result.
+
+For automatic expiration, try including a time value in the cache key.  This
+example will generate a new cache entry every 2 hours (removal of stale
+entries is left as an exercise to the reader):
+
+  <% cache("mail/expensive-list-#{Time.now.to_i / 2.hours.to_i}") do %>
+     <% ExpensiveOperation.results.each do |result| %>
+     * Item #<%= result.id %>: "<%= result.title %>"
+     <% end %>
+  <% end %>
+
+
+Copyright (c) 2009 Mike Demers <mike_(at)_9astronauts.com>, released under
+the MIT license.
